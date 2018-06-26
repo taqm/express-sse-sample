@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+</head>
+<body>
+  <div id="root">
+    <form @submit="handleSubmit">
+      <input type="text" v-model="inputText">
+      <input type="submit" value="送信">
+    </form>
+    <ul>
+      <li v-for="msg in messages">{{msg}}</li>
+    </ul>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.5.16/dist/vue.js"></script>
+  <script>
+    new Vue({
+      el: '#root',
+      data() {
+        return {
+          inputText: '',
+          messages: [],
+        };
+      },
+      mounted() {
+        const source = new EventSource('/sse');
+        source.addEventListener('message', (ev) => {
+          if (!ev.data) return;
+          this.messages.push(ev.data);
+        });
+      },
+      methods: {
+        handleSubmit(ev) {
+          ev.preventDefault();
+          const method = 'POST';
+          const headers = {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          };
+          const body = JSON.stringify({
+            text: this.inputText,
+          });
+          this.inputText = '';
+          fetch('/message', { method, headers, body })
+            .then(res => res.json())
+            .then(console.log)
+            .catch(console.error);
+        }
+      }
+    });
+  </script>
+</body>
+</html>
