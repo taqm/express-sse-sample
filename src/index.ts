@@ -20,9 +20,10 @@ const source$ = new Subject<MessageEvent>();
 source$.subscribe(console.log);
 
 app.get('/demo', (req, res) => {
+  const sse = res.sse();
   const conn$ = interval(1000)
     .pipe(map(String))
-    .subscribe(res.sse());
+    .subscribe(sse.send.bind(sse));
 
   req.on('close', () => {
     conn$.unsubscribe();
@@ -30,18 +31,16 @@ app.get('/demo', (req, res) => {
 });
 
 app.get('/sse', (req, res) => {
-  const sendMessage = res.sse();
-
+  const sse = res.sse();
   const sub$ = source$
     .pipe(filter(ev => true))
     .subscribe((ev) => {
-      sendMessage(ev.text);
+      sse.send(ev.text);
     });
 
-  // コネクションが切れないように10秒おきにdataを返す
+  // connection keep alive
   const conn$ = interval(10000)
-    .pipe(map(() => ''))
-    .subscribe(sendMessage);
+    .subscribe(sse.keepAlive.bind(sse));
 
   req.on('close', () => {
     sub$.unsubscribe();
